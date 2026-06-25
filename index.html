@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microhack scoresheet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="workspace">
+        
+        <div class="scoring-panel">
+            <div class="section-header">
+                <h1>Micro-hackathon 1.0</h1>
+                <p style="margin-top: 8px;">Scoresheet</p>
+            </div>
+
+            <div class="identity-bar">
+                <div>
+                    <label style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">Your Identity</label>
+                    <select id="teamSelector" onchange="handleIdentityShift()">
+                        </select>
+                </div>
+                <span class="material-icons-outlined" style="color: var(--text-muted)">groups</span>
+            </div>
+
+            <h3 style="font-family: var(--font-sans); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 32px 0 16px 0;">Rate Other Contenders</h3>
+            <div id="teamsContainer">
+                </div>
+        </div>
+
+        <div>
+            <div class="standings-panel">
+                <h3>Live Standings</h3>
+                <p style="font-size: 0.85rem; margin-bottom: 24px;">Aggregated metrics across team submissions.</p>
+                
+                <div id="revealOverlay" class="reveal-overlay">
+                    <span class="material-icons-outlined" style="font-size: 36px; margin-bottom: 12px; color: var(--text-muted);">visibility_off</span>
+                    <h3>Standings are hidden</h3>
+                    <p>Enter the master key to reveal peer aggregated rankings.</p>
+                    <div style="display: flex; gap: 8px; width: 100%; max-width: 260px;">
+                        <input type="password" id="gatekeeperKey" placeholder="Password" style="flex-grow: 1; padding: 8px 12px;">
+                        <button class="btn-submit" onclick="verifyAndReveal()" style="padding: 8px 16px;">Open</button>
+                    </div>
+                    <div id="lockError" style="color: #b43c3c; font-size: 0.8rem; margin-top: 8px; display: none;">Invalid Passphrase</div>
+                </div>
+
+                <div id="standingsList" class="standings-list blurred">
+                    </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>
