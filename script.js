@@ -1,30 +1,84 @@
-// 1. SUPABASE PIPELINE CREDENTIALS
+// 1. DATABASE CONNECTIVITY PRESETS
 const SUPABASE_URL = 'https://gjvtglumwbhjeutekynb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqdnRnbHVtd2JoamV1dGVreW5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzA2MDQsImV4cCI6MjA5NzkwNjYwNH0.s1h5haWYgogoQXKPdY_ifSEeZJHRHQKmbBVEruU7pOI';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqdnRnbHVtd2JoamV1dGVreW5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzA2MDQsImV4cCI6MjA5NzkwNjYwNH0.s1h5haWYgogoQXKPdY_ifSEeZJHRHQKmbBVEruU7pOI'; // Replace with your actual anon key string
 const MASTER_PASSWORD = 'itfeelsgoodtobetheking';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 let globalTeamsList = [];
+let timerInterval = null;
 
-window.onload = async () => {
-    await initializeBaseContext();
-    setupRealtimePipeline();
+// 2. TIMING DEFINITION TARGET CONFIGURATION
+// Safely targets "Tomorrow at 3:05 PM IST" regardless of localized client system times
+function getTargetTime() {
+    return new Date('2026-06-29T16:05:00+05:30');
+}
+
+const targetCountdownDate = getTargetTime().getTime();
+
+window.onload = () => {
+    evaluateApplicationState();
 };
 
-// Pull foundational system properties once on load
+// State machine controller switches between core views
+function evaluateApplicationState() {
+    const now = new Date().getTime();
+    const distance = targetCountdownDate - now;
+
+    if (distance > 0) {
+        switchScreenState('countdownScreen');
+        runCountdownEngine();
+    } else {
+        switchScreenState('welcomeScreen');
+    }
+}
+
+function switchScreenState(screenId) {
+    document.querySelectorAll('.state-screen').forEach(s => s.classList.remove('active'));
+    const element = document.getElementById(screenId);
+    element.classList.add('active');
+}
+
+// Live ticking tracking engine updates DOM values
+function runCountdownEngine() {
+    timerInterval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = targetCountdownDate - now;
+
+        if (distance <= 0) {
+            clearInterval(timerInterval);
+            switchScreenState('welcomeScreen');
+            return;
+        }
+
+        const hours = Math.floor(distance / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById('hr').textContent = String(hours).padStart(2, '0');
+        document.getElementById('min').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('sec').textContent = String(seconds).padStart(2, '0');
+    }, 1000);
+}
+
+// Moves from welcome splash down into the scoring console
+async function transitionToDashboard() {
+    switchScreenState('dashboardScreen');
+    // Lazy load the data connections once screen is requested
+    await initializeBaseContext();
+    setupRealtimePipeline();
+}
+
+/* --- Foundational DB Pipeline Controllers --- */
 async function initializeBaseContext() {
     const { data, error } = await supabaseClient.from('teams').select('*').order('id', { ascending: true });
     if (error) return console.error(error);
 
     globalTeamsList = data;
-
     populateIdentityDropdown();
-    handleIdentityShift(); // Renders appropriate rating lists immediately
+    handleIdentityShift();
     await calculateAndRenderStandings();
 }
 
-// Fill "Who are you?" drop down array definitions
 function populateIdentityDropdown() {
     const select = document.getElementById('teamSelector');
     select.innerHTML = '';
@@ -36,16 +90,13 @@ function populateIdentityDropdown() {
     });
 }
 
-// Whenever active logging identity changes, change available targets (hide self-grading card)
 async function handleIdentityShift() {
     const myTeamId = parseInt(document.getElementById('teamSelector').value, 10);
     const container = document.getElementById('teamsContainer');
     container.innerHTML = '';
 
-    // Filter out self
     const evaluableTargets = globalTeamsList.filter(t => t.id !== myTeamId);
 
-    // Grab any existing grades this selector made prior to setup
     const { data: currentGrades } = await supabaseClient
         .from('scores')
         .select('*')
@@ -73,13 +124,12 @@ async function handleIdentityShift() {
     });
 }
 
-// Write entry to relational scores matrix schema
 async function submitPeerScore(targetTeamId) {
     const myTeamId = parseInt(document.getElementById('teamSelector').value, 10);
     const scoreVal = parseInt(document.getElementById(`score-input-${targetTeamId}`).value, 10);
 
     if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 100) {
-        alert('Please provide a performance grading weight integer scaling between 0 and 100.');
+        alert('Please provide a score between 0 and 100.');
         return;
     }
 
@@ -94,19 +144,16 @@ async function submitPeerScore(targetTeamId) {
 
     if (error) {
         console.error(error);
-        alert('Submission rejected by integrity engine.');
+        alert('Submission rejected.');
     } else {
-        // Flash interaction response feedback indicator
         alert('Score captured cleanly.');
     }
 }
 
-// Read global values out of tables safely to build ranking
 async function calculateAndRenderStandings() {
     const { data: rawScores, error } = await supabaseClient.from('scores').select('*');
     if (error) return console.error(error);
 
-    // Sum totals
     const scoreSumMap = {};
     globalTeamsList.forEach(t => scoreSumMap[t.id] = 0);
     rawScores.forEach(s => {
@@ -115,13 +162,11 @@ async function calculateAndRenderStandings() {
         }
     });
 
-    // Map and Sort
     const processedList = globalTeamsList.map(t => ({
         name: t.name,
         totalScore: scoreSumMap[t.id]
     })).sort((a, b) => b.totalScore - a.totalScore);
 
-    // Display
     const listContainer = document.getElementById('standingsList');
     listContainer.innerHTML = '';
 
@@ -139,7 +184,6 @@ async function calculateAndRenderStandings() {
     });
 }
 
-// Authorization block validation routine
 function verifyAndReveal() {
     const entry = document.getElementById('gatekeeperKey').value;
     const errorElement = document.getElementById('lockError');
@@ -152,7 +196,6 @@ function verifyAndReveal() {
     }
 }
 
-// Live changes listeners pipeline channel assignments
 function setupRealtimePipeline() {
     supabaseClient
         .channel('realtime-peer-feed')
