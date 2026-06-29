@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hackathon Peer Standings</title>
+    <title>Micro Hackathon 1.0: Scoresheet</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <style>
-    </style>
 </head>
 <body>
 
-    <div id="countdownScreen" class="state-screen Interstitial-panel">
+    <div id="countdownScreen" class="state-screen interstitial-panel">
         <h1>Micro Hackathon Underway.</h1>
-        <p>The hackathon's scoresheet will open when the clock runs down</p>
+        <p>The hackathon's scoresheet will open when the clock runs down.</p>
         <div class="timer-display">
             <div class="timer-segment"><span id="hr">00</span><span class="timer-label">hrs</span></div>
             <div class="timer-segment"><span id="min">00</span><span class="timer-label">min</span></div>
@@ -28,34 +25,45 @@
     </div>
 
     <div id="welcomeScreen" class="state-screen interstitial-panel">
-        <h1>Time's up.</h1>
-        <p>Nothing makes us happier than rating others. <br><br> Time for choti khushi.</p>
-        <button class="btn-action-large" onclick="transitionToDashboard()">Start Scoring</button>
+        <h1>Time is up.</h1>
+        <p>Hacking has formally concluded. Ready to access sheets and evaluate peers?</p>
+        <button class="btn-action-large" onclick="transitionToDashboard()">Start Hacking</button>
     </div>
 
     <div id="dashboardScreen" class="state-screen">
         <div class="scoring-panel">
             <div class="section-header">
                 <h1 style="font-size: 3.5rem;">Scoresheet</h1>
-                <p style="margin-top: 8px;">Score your peers on a scale of 0-100, for overall solution and presentation.</p>
+                <p style="margin-top: 8px;"></p>
             </div>
 
             <div class="identity-bar">
-                <div>
-                    <label style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); display: block; margin-bottom: 4px;">Your Identity</label>
-                    <select id="teamSelector" onchange="handleIdentityShift()"></select>
+                <div class="identity-inputs">
+                    <div class="input-group">
+                        <label for="teamSelector">Select team</label>
+                        <select id="teamSelector" onchange="clearAuthAndSheet()"></select>
+                    </div>
+                    <div class="input-group">
+                        <label for="teamPassword">Team Password</label>
+                        <input type="password" id="teamPassword" placeholder="••••••••">
+                    </div>
+                    <button class="btn-submit" onclick="authenticateTeam()" style="height: 42px;">Unlock Sheet</button>
                 </div>
-                <span class="material-icons-outlined" style="color: var(--text-muted)">groups</span>
+                <div id="authFeedback" style="font-size: 0.85rem; margin-top: 4px; color: #b43c3c; display: none;">Invalid team password.</div>
             </div>
 
-            <h3 style="font-family: var(--font-sans); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 32px 0 16px 0;">Rate Other Contenders</h3>
-            <div id="teamsContainer"></div>
+            <h3 style="font-family: var(--font-sans); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 32px 0 16px 0;">Start rating!</h3>
+            <div id="teamsContainer">
+                <div style="color: var(--text-muted); font-size: 0.95rem; font-style: italic; border: 1px dashed var(--border-color); padding: 24px; border-radius: 12px; text-align: center;">
+                    Please enter your team password above to unlock your scoring sheet.
+                </div>
+            </div>
         </div>
 
         <div>
             <div class="standings-panel">
                 <h3 style="font-size: 1.8rem;">Live Standings</h3>
-                <p style="font-size: 0.85rem; margin-bottom: 24px;">Aggregated metrics across team submissions.</p>
+                <p style="font-size: 0.85rem; margin-bottom: 24px;">Final leaderboard.</p>
                 
                 <div id="revealOverlay" class="reveal-overlay">
                     <span class="material-icons-outlined" style="font-size: 36px; margin-bottom: 12px; color: var(--text-muted);">visibility_off</span>
@@ -73,6 +81,6 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="./script.js"></script>
 </body>
 </html>

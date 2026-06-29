@@ -150,11 +150,32 @@ h2 {
     background-color: #f3f1eb;
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 16px 20px;
+    padding: 20px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 16px;
+}
+
+.identity-inputs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-grow: 1;
+    min-width: 180px;
+}
+
+.input-group label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
 }
 
 select,

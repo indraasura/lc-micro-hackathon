@@ -5,10 +5,11 @@ const MASTER_PASSWORD = 'itfeelsgoodtobetheking';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let globalTeamsList = [];
+let authenticatedTeamId = null;
 let timerInterval = null;
 
 // 2. TIMING DEFINITION TARGET CONFIGURATION
-// Safely targets "Tomorrow at 3:05 PM IST" regardless of localized client system times
+// Target: Monday, June 29, 2026 at 4:05 PM IST (UTC+5:30)
 function getTargetTime() {
     return new Date('2026-06-29T16:05:00+05:30');
 }
@@ -19,7 +20,6 @@ window.onload = () => {
     evaluateApplicationState();
 };
 
-// State machine controller switches between core views
 function evaluateApplicationState() {
     const now = new Date().getTime();
     const distance = targetCountdownDate - now;
@@ -38,7 +38,6 @@ function switchScreenState(screenId) {
     element.classList.add('active');
 }
 
-// Live ticking tracking engine updates DOM values
 function runCountdownEngine() {
     timerInterval = setInterval(() => {
         const now = new Date().getTime();
@@ -60,22 +59,18 @@ function runCountdownEngine() {
     }, 1000);
 }
 
-// Moves from welcome splash down into the scoring console
 async function transitionToDashboard() {
     switchScreenState('dashboardScreen');
-    // Lazy load the data connections once screen is requested
     await initializeBaseContext();
     setupRealtimePipeline();
 }
 
-/* --- Foundational DB Pipeline Controllers --- */
 async function initializeBaseContext() {
     const { data, error } = await supabaseClient.from('teams').select('*').order('id', { ascending: true });
     if (error) return console.error(error);
 
     globalTeamsList = data;
     populateIdentityDropdown();
-    handleIdentityShift();
     await calculateAndRenderStandings();
 }
 
@@ -90,17 +85,51 @@ function populateIdentityDropdown() {
     });
 }
 
-async function handleIdentityShift() {
-    const myTeamId = parseInt(document.getElementById('teamSelector').value, 10);
+// Clears out active panel access when changing selected dropdown identity
+function clearAuthAndSheet() {
+    authenticatedTeamId = null;
+    document.getElementById('teamPassword').value = '';
+    document.getElementById('authFeedback').style.display = 'none';
+    document.getElementById('teamsContainer').innerHTML = `
+                <div style="color: var(--text-muted); font-size: 0.95rem; font-style: italic; border: 1px dashed var(--border-color); padding: 24px; border-radius: 12px; text-align: center;">
+                    Please enter your team password above to unlock your scoring sheet.
+                </div>`;
+}
+
+// Validate password input with the record in the database
+async function authenticateTeam() {
+    const currentTeamId = parseInt(document.getElementById('teamSelector').value, 10);
+    const inputPassword = document.getElementById('teamPassword').value;
+    const feedback = document.getElementById('authFeedback');
+
+    // Find match inside global loaded cache structure
+    const selectedTeamObj = globalTeamsList.find(t => t.id === currentTeamId);
+
+    if (selectedTeamObj && selectedTeamObj.password === inputPassword) {
+        feedback.style.display = 'none';
+        authenticatedTeamId = currentTeamId;
+        await loadAndRenderScoringSheet();
+    } else {
+        authenticatedTeamId = null;
+        feedback.style.display = 'block';
+        feedback.textContent = 'Invalid team password.';
+    }
+}
+
+// Render matching peer target listings once password confirms identity context
+async function loadAndRenderScoringSheet() {
+    if (!authenticatedTeamId) return;
+
     const container = document.getElementById('teamsContainer');
     container.innerHTML = '';
 
-    const evaluableTargets = globalTeamsList.filter(t => t.id !== myTeamId);
+    const evaluableTargets = globalTeamsList.filter(t => t.id !== authenticatedTeamId);
 
+    // Fetch any historical grades captured from this identifier row context prior
     const { data: currentGrades } = await supabaseClient
         .from('scores')
         .select('*')
-        .eq('evaluator_team_id', myTeamId);
+        .eq('evaluator_team_id', authenticatedTeamId);
 
     evaluableTargets.forEach(team => {
         const existingRecord = currentGrades ? currentGrades.find(g => g.target_team_id === team.id) : null;
@@ -116,7 +145,7 @@ async function handleIdentityShift() {
                         </div>
                     </div>
                     <div class="score-input-wrapper">
-                        <input type="number" min="0" max="100" placeholder="0-100" id="score-input-${team.id}" class="input-score" value="${existingValue}">
+                        <input type="number" min="0" max="10" placeholder="0-10" id="score-input-${team.id}" class="input-score" value="${existingValue}">
                         <button class="btn-submit" onclick="submitPeerScore(${team.id})">Save Grade</button>
                     </div>
                 `;
@@ -125,18 +154,23 @@ async function handleIdentityShift() {
 }
 
 async function submitPeerScore(targetTeamId) {
-    const myTeamId = parseInt(document.getElementById('teamSelector').value, 10);
+    // Anti-impersonation system confirmation verification checkpoint check
+    if (!authenticatedTeamId) {
+        alert('Your identity context token expired or is unverified. Re-enter your password.');
+        return;
+    }
+
     const scoreVal = parseInt(document.getElementById(`score-input-${targetTeamId}`).value, 10);
 
-    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 100) {
-        alert('Please provide a score between 0 and 100.');
+    if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
+        alert('Please provide a score between 0 and 10.');
         return;
     }
 
     const { error } = await supabaseClient
         .from('scores')
         .upsert({
-            evaluator_team_id: myTeamId,
+            evaluator_team_id: authenticatedTeamId,
             target_team_id: targetTeamId,
             score_value: scoreVal,
             updated_at: new Date().toISOString()
